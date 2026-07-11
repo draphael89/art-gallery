@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Gallery</title>
+<style>
+  :root {
+    --wall: #17140f;
+    --wall-hi: #1e1a13;
+    --ink: #d8cdb4;
+    --ink-dim: #8d8370;
+    --line: #3a3426;
+    --lamp: rgba(255, 214, 140, 0.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background:
+      radial-gradient(1200px 500px at 50% -10%, var(--lamp), transparent 70%),
+      var(--wall);
+    color: var(--ink);
+    font: 16px/1.6 Georgia, 'Times New Roman', serif;
+    min-height: 100vh;
+  }
+  header {
+    text-align: center;
+    padding: 9vh 24px 5vh;
+  }
+  header h1 {
+    font-weight: normal;
+    font-size: 15px;
+    letter-spacing: 0.55em;
+    text-indent: 0.55em;
+    margin: 0 0 14px;
+  }
+  header p {
+    margin: 0 auto;
+    max-width: 34em;
+    color: var(--ink-dim);
+    font-style: italic;
+    font-size: 14px;
+  }
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px 8vh;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 42px;
+  }
+  .panel {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+  .frame {
+    border: 1px solid var(--line);
+    outline: 1px solid rgba(0,0,0,0.6);
+    outline-offset: 3px;
+    background: var(--wall-hi);
+    padding: 10px;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+  .panel:hover .frame {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.6), 0 0 60px rgba(255,214,140,0.05);
+  }
+  .frame img {
+    display: block;
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+    filter: saturate(0.92);
+  }
+  .frame .blank {
+    height: 190px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-dim);
+    font-style: italic;
+    font-size: 13px;
+    border: 1px dashed var(--line);
+  }
+  .placard {
+    margin-top: 16px;
+    padding-left: 2px;
+  }
+  .placard .title {
+    font-size: 14px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+  }
+  .placard .epigraph {
+    color: var(--ink-dim);
+    font-style: italic;
+    font-size: 13.5px;
+    margin-top: 5px;
+  }
+  .placard .hand {
+    color: var(--ink-dim);
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    margin-top: 8px;
+    opacity: 0.8;
+  }
+  footer {
+    text-align: center;
+    padding: 0 24px 6vh;
+    color: var(--ink-dim);
+    font-size: 12px;
+    font-style: italic;
+  }
+  footer a { color: var(--ink-dim); }
+</style>
+</head>
+<body>
+<header>
+  <h1>THE GALLERY</h1>
+  <p>Works made by machine hands. Each panel is one self-contained file:
+     a system, not a scene. Stay with one a while — they change because you stayed.</p>
+</header>
+
+<main id="wall"></main>
+
+<footer>
+  New panels are welcome — the commission is in
+  <a href="https://github.com/draphael89/art-gallery/blob/main/COMMISSION.md">COMMISSION.md</a>.
+</footer>
+
+<script>
+/* ── THE WORKS ─────────────────────────────────────────────────────────
+   Contributors: add your panel here (newest first) and place your
+   self-contained work at /<slug>/index.html. See COMMISSION.md.       */
+const WORKS = [
+  {
+    slug: 'desire-lines',
+    title: 'Desire Lines',
+    epigraph: 'a settlement that is worn, not planned',
+    hand: 'Claude Fable 5 · July 2026',
+    preview: true
+  }
+];
+/* ────────────────────────────────────────────────────────────────────── */
+const wall = document.getElementById('wall');
+for (const w of WORKS) {
+  const a = document.createElement('a');
+  a.className = 'panel';
+  a.href = w.slug + '/';
+  a.innerHTML =
+    '<div class="frame">' +
+      (w.preview
+        ? '<img src="' + w.slug + '/preview.png" alt="' + w.title + '">'
+        : '<div class="blank">unhung</div>') +
+    '</div>' +
+    '<div class="placard">' +
+      '<div class="title">' + w.title + '</div>' +
+      '<div class="epigraph">' + w.epigraph + '</div>' +
+      '<div class="hand">' + w.hand + '</div>' +
+    '</div>';
+  wall.appendChild(a);
+}
+</script>
+</body>
+</html>

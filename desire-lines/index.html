@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+
+    D E S I R E   L I N E S
+
+    a settlement that is worn, not planned
+
+    THE DECLARATION — the one thing attempted here that I have not seen
+    done before: a road network that is *remembered* rather than drawn.
+    Nobody — not the visitor, not the code — ever draws a road. Walkers
+    erode them into the ground (Movement V, an active-walker model after
+    Helbing), the worn trails feed back into every walker's steering, and
+    the same trails are the score: a note sounds only when a walk ends
+    (Movement VI, a Karplus-Strong string computed sample-by-sample, a
+    bell built from true bell partials, a hall convolved from seeded
+    noise). Beneath the living trails, a scar layer never decays: even a
+    road abandoned for an hour still bends the feet of strangers. The
+    mechanism is the argument — infrastructure is congealed habit, and
+    the ground forgets nothing.
+
+    THE RISK — it lives in Movement VII. The settlement is mortal. Wells
+    have finite water; when the last one dries, the walkers leave, the
+    music stops, and the piece is allowed to remain silent — wind, ruins,
+    ghost roads — until the visitor founds a reason to walk again, or
+    doesn't. A second risk is kept beside it: paths emerge on the
+    erosion model's own terms and may take minutes to converge. The
+    piece dares to be slow.
+
+    THE VISITOR IS TRUSTED — no tutorial. Touch the ground and see.
+    The seed rests in the corner; give it to someone in the URL hash
+    and the same ground, springs, and voices will be waiting.
+
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Desire Lines</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #e7dcc0; }
+  canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; touch-action: none; }
+  #seedtag {
+    position: fixed; right: 14px; bottom: 10px;
+    font: 11px Georgia, 'Times New Roman', serif;
+    letter-spacing: .12em; color: rgba(60, 48, 30, .5);
+    user-select: none; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<canvas id="ground"></canvas>
+<div id="seedtag"></div>
+<script>
+'use strict';
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT 0 · PRELUDE — small tools
+   ───────────────────────────────────────────────────────────────────────── */
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const angdiff = (a, b) => { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; };
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT I · THE SEED — every performance citable
+   Same seed: same ground, same springs, same voices. The walking itself
+   is weather — it drinks entropy from the frame clock and is never twice.
+   ───────────────────────────────────────────────────────────────────────── */
+const rawHash = location.hash.slice(1);
+const seedStr = /^[a-z0-9]{3,12}$/.test(rawHash) ? rawHash : Math.random().toString(36).slice(2, 8);
+try { history.replaceState(null, '', '#' + seedStr); } catch (e) { location.hash = seedStr; }
+document.getElementById('seedtag').textContent = 'seed · ' + seedStr;
+
+function xmur3(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return function () { h = Math.imul(h ^ h >>> 16, 2246822507); h = Math.imul(h ^ h >>> 13, 3266489909); return (h ^= h >>> 16) >>> 0; };
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const seedFn = xmur3(seedStr);
+const rng  = mulberry32(seedFn());   // the world
+const arng = mulberry32(seedFn());   // the instrument
+const paperSeed = seedFn();          // the paper (regenerated identically on resize)
+
+// seeded value noise, for terrain and paper alike
+const PERM = new Uint8Array(512);
+{
+  const p = Array.from({ length: 256 }, (_, i) => i);
+  for (let i = 255; i > 0; i--) { const j = (rng() * (i + 1)) | 0; const t = p[i]; p[i] = p[j]; p[j] = t; }
+  for (let i = 0; i < 512; i++) PERM[i] = p[i & 255];
+}
+const fade = t => t * t * (3 - 2 * t);
+function vnoise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const h = (i, j) => PERM[(PERM[(xi + i) & 255] + yi + j) & 255] / 255;
+  const u = fade(xf), v = fade(yf);
+  return h(0, 0) * (1 - u) * (1 - v) + h(1, 0) * u * (1 - v) + h(0, 1) * (1 - u) * v + h(1, 1) * u * v;
+}
+function fbm(x, y) {
+  return (vnoise(x, y) * 0.5 + vnoise(x * 2.03, y * 2.03) * 0.25 +
+          vnoise(x * 4.1, y * 4.1) * 0.125 + vnoise(x * 8.2, y * 8.2) * 0.0625) / 0.9375;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT II · THE GROUND — three layers of earth
+   trail : living wear; deposited by footsteps, always decaying
+   scar  : the ground's permanent memory; grows under heavy wear, never fades
+   rough : broken country, fixed at creation; walkers shy from it, so
+           roads curve for reasons the map only hints at
+   ───────────────────────────────────────────────────────────────────────── */
+const FH = 120;
+const FW = clamp(Math.round(FH * (Math.max(1, innerWidth) / Math.max(1, innerHeight))), 100, 280);
+const NC = FW * FH;
+let trail = new Float32Array(NC);
+let swap  = new Float32Array(NC);
+const scar  = new Float32Array(NC);
+const rough = new Float32Array(NC);
+{
+  const ox = rng() * 90, oy = rng() * 90;
+  for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) {
+    rough[y * FW + x] = clamp((fbm(x * 0.05 + ox, y * 0.05 + oy) - 0.55) / 0.2, 0, 1);
+  }
+}
+const idx = (x, y) => clamp(y | 0, 0, FH - 1) * FW + clamp(x | 0, 0, FW - 1);
+// what a walker's feet feel: living wear plus ghost roads, amplified —
+// this term is why dead roads still bend footsteps forever
+const groundAt = (x, y) => { const i = idx(x, y); return trail[i] + scar[i] * 2.5; };
+const roughAt  = (x, y) => rough[idx(x, y)];
+
+function stepField(dt) {
+  const dif = clamp(3.2 * dt, 0, 0.25);
+  const dec = Math.exp(-0.034 * dt);
+  for (let y = 0; y < FH; y++) {
+    const yu = (y > 0 ? y - 1 : y) * FW, yd = (y < FH - 1 ? y + 1 : y) * FW;
+    for (let x = 0; x < FW; x++) {
+      const i = y * FW + x;
+      const xl = x > 0 ? i - 1 : i, xr = x < FW - 1 ? i + 1 : i;
+      const avg = (trail[xl] + trail[xr] + trail[yu + x] + trail[yd + x]) * 0.25;
+      const v = (trail[i] + (avg - trail[i]) * dif) * dec;
+      swap[i] = v;
+      if (v > 1) scar[i] = Math.min(1, scar[i] + v * 0.0016 * dt);
+    }
+  }
+  const t = trail; trail = swap; swap = t;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT III · THE PAPER — parchment, engraved once per window
+   ───────────────────────────────────────────────────────────────────────── */
+const cv = document.getElementById('ground');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1, SX = 1, SY = 1, P = null;
+
+const TC = document.createElement('canvas'); TC.width = FW; TC.height = FH;
+const tctx = TC.getContext('2d');
+const img = tctx.createImageData(FW, FH);
+for (let i = 0; i < NC; i++) { const j = i * 4; img.data[j] = 46; img.data[j + 1] = 36; img.data[j + 2] = 22; }
+
+function makePaper() {
+  const rp = mulberry32(paperSeed);
+  P = document.createElement('canvas');
+  P.width = Math.max(1, Math.floor(W * DPR)); P.height = Math.max(1, Math.floor(H * DPR));
+  const g = P.getContext('2d'); g.scale(DPR, DPR);
+  g.fillStyle = '#e7dcc0'; g.fillRect(0, 0, W, H);
+  // mottling — the paper's own weather
+  const qw = Math.max(1, W >> 2), qh = Math.max(1, H >> 2);
+  const mc = document.createElement('canvas'); mc.width = qw; mc.height = qh;
+  const mg = mc.getContext('2d'); const mi = mg.createImageData(qw, qh);
+  for (let y = 0; y < qh; y++) for (let x = 0; x < qw; x++) {
+    const n = fbm(x * 0.05 + 31.7, y * 0.05 + 11.3) - 0.5;
+    const j = (y * qw + x) * 4;
+    mi.data[j] = clamp(231 + n * 30, 0, 255); mi.data[j + 1] = clamp(220 + n * 26, 0, 255);
+    mi.data[j + 2] = clamp(193 + n * 22, 0, 255); mi.data[j + 3] = 255;
+  }
+  mg.putImageData(mi, 0, 0);
+  g.drawImage(mc, 0, 0, W, H);
+  // fibers
+  g.strokeStyle = 'rgba(120,100,68,0.06)'; g.lineWidth = 0.7;
+  for (let i = 0; i < 420; i++) {
+    const x = rp() * W, y = rp() * H, l = 4 + rp() * 16, a = rp() * TAU;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke();
+  }
+  // broken country, in an engraver's stipple
+  g.strokeStyle = 'rgba(88,72,46,1)'; g.lineWidth = 0.8;
+  for (let i = 0; i < 14000; i++) {
+    const fx = rp() * FW, fy = rp() * FH;
+    const r = rough[(fy | 0) * FW + (fx | 0)];
+    if (r <= 0.02 || rp() > r * 0.55) continue;
+    const x = fx * (W / FW) + (rp() - 0.5) * 4, y = fy * (H / FH) + (rp() - 0.5) * 4;
+    g.globalAlpha = 0.08 + r * 0.14;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + 1.2 + rp() * 2, y + (rp() - 0.5) * 2.4); g.stroke();
+  }
+  g.globalAlpha = 1;
+  // a surveyor's double border
+  g.strokeStyle = 'rgba(70,54,30,0.28)'; g.lineWidth = 1;
+  g.strokeRect(6.5, 6.5, W - 13, H - 13);
+  g.lineWidth = 0.6; g.strokeRect(10.5, 10.5, W - 21, H - 21);
+  // vignette
+  const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.hypot(W, H) * 0.6);
+  vg.addColorStop(0, 'rgba(70,54,30,0)'); vg.addColorStop(1, 'rgba(70,54,30,0.14)');
+  g.fillStyle = vg; g.fillRect(0, 0, W, H);
+}
+
+function resize() {
+  W = innerWidth; H = innerHeight; DPR = Math.min(devicePixelRatio || 1, 2);
+  cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  SX = W / FW; SY = H / FH;
+  makePaper();
+}
+let rsT = 0;
+addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(resize, 150); });
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT IV · THE PLACES — wells, and what grows beside the roads
+   A well is a reason to walk. It is also a note: pitch chosen at its
+   founding from a D minor pentatonic, so any coincidence of arrivals
+   is a chord. A well's water is finite. Buildings are never placed —
+   they condense where wear is deep, and ruin where it fades.
+   ───────────────────────────────────────────────────────────────────────── */
+const wells = [], buildings = [];
+let totalVisits = 0, simTime = 0;
+
+function foundWell(fx, fy, silent) {
+  const semis = [0, 3, 5, 7, 10];
+  const oct = [0, 12, 12, 24][(rng() * 4) | 0];
+  const w = {
+    x: fx, y: fy,
+    freq: 146.83 * Math.pow(2, (semis[(rng() * 5) | 0] + oct) / 12),
+    visits: 0, cap: 70 + ((rng() * 180) | 0),
+    alive: true, lastRing: -9, ripples: [], born: simTime
+  };
+  wells.push(w);
+  if (!silent) { ringWell(w, 0.9); bell(w.freq, 0.35); }
+  return w;
+}
+function dryWell(w) {
+  if (!w.alive) return;
+  w.alive = false;
+  bell(73.42, 0.7); // the low toll of D
+  for (const k of walkers) if (k.dest === w) chooseDest(k);
+}
+const aliveWells = () => wells.filter(w => w.alive);
+const nearestWell = (fx, fy, r) => {
+  let best = null, bd = r;
+  for (const w of wells) { const d = Math.hypot(w.x - fx, w.y - fy); if (d < bd) { bd = d; best = w; } }
+  return best;
+};
+
+function tryBuilding() {
+  for (let k = 0; k < 30; k++) {
+    const x = 6 + ((rng() * (FW - 12)) | 0), y = 6 + ((rng() * (FH - 12)) | 0);
+    const i = y * FW + x;
+    if (trail[i] < 2.1 || rough[i] > 0.3) continue;
+    if (wells.some(w => Math.hypot(w.x - x, w.y - y) < 6)) continue;
+    if (buildings.some(b => Math.hypot(b.x - x, b.y - y) < 5)) continue;
+    // step off the road, perpendicular to it (gradient points across a path)
+    const gx = trail[i + 1] - trail[i - 1], gy = trail[i + FW] - trail[i - FW];
+    const gl = Math.hypot(gx, gy);
+    let ox, oy;
+    if (gl > 0.05) { ox = gx / gl; oy = gy / gl; } else { const a = rng() * TAU; ox = Math.cos(a); oy = Math.sin(a); }
+    const side = rng() < 0.5 ? 3 : -3;
+    buildings.push({
+      x: clamp(x + ox * side, 3, FW - 3), y: clamp(y + oy * side, 3, FH - 3),
+      rot: Math.atan2(oy, ox) + Math.PI / 2,
+      w: 9 + rng() * 6, h: 6 + rng() * 4,
+      alive: true, fade: 0, ai: i
+    });
+    return;
+  }
+}
+function decayBuildings() { // called every 5s; fade counts seconds of neglect
+  for (const b of buildings) {
+    if (!b.alive) continue;
+    if (trail[b.ai] < 0.22) b.fade += 5; else b.fade = Math.max(0, b.fade - 10);
+    if (b.fade > 60) b.alive = false;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT V · THE WALKERS — the erosion model
+   Each walker wants its destination but prefers worn ground (each by a
+   different temperament, `way`). Feet deposit wear; wear steers feet.
+   The road network is the fixed point of that loop — nobody drew it.
+   A pressure valve: after 26 lost seconds a walker stops trusting the
+   roads and beelines. Habit yields, eventually, to thirst.
+   ───────────────────────────────────────────────────────────────────────── */
+const walkers = [];
+
+function spawnWalker(dest) {
+  const side = (rng() * 4) | 0;
+  let x, y;
+  if (side === 0)      { x = 1;      y = rng() * FH; }
+  else if (side === 1) { x = FW - 1; y = rng() * FH; }
+  else if (side === 2) { y = 1;      x = rng() * FW; }
+  else                 { y = FH - 1; x = rng() * FW; }
+  walkers.push({ x, y, a: rng() * TAU, spd: 8 + rng() * 5, way: 0.5 + rng(), dest, state: 'walk', t: 0, ph: rng() * 7, frust: 0 });
+}
+
+function spawnLoneWanderer() { // after the death of the town: a stranger crossing
+  const side = (rng() * 4) | 0;
+  let x, y, dest;
+  if (side === 0)      { x = 0;  y = 4 + rng() * (FH - 8); dest = { x: FW + 4, y: 4 + rng() * (FH - 8) }; }
+  else if (side === 1) { x = FW; y = 4 + rng() * (FH - 8); dest = { x: -4,     y: 4 + rng() * (FH - 8) }; }
+  else if (side === 2) { y = 0;  x = 4 + rng() * (FW - 8); dest = { x: 4 + rng() * (FW - 8), y: FH + 4 }; }
+  else                 { y = FH; x = 4 + rng() * (FW - 8); dest = { x: 4 + rng() * (FW - 8), y: -4 }; }
+  // way 1.7: strangers trust ghost roads more than anyone — they know nothing else
+  walkers.push({ x, y, a: Math.atan2(dest.y - y, dest.x - x), spd: 7 + rng() * 3, way: 1.7, dest, state: 'leave', t: 0, ph: rng() * 7, frust: -40 });
+}
+
+function popTarget() {
+  const aw = aliveWells().length;
+  return aw === 0 ? 0 : Math.min(56, 5 + aw * 7 + Math.floor(totalVisits / 60));
+}
+
+function setLeave(w) {
+  const dl = w.x, dr = FW - w.x, du = w.y, db = FH - w.y;
+  const m = Math.min(dl, dr, du, db);
+  w.dest = m === dl ? { x: -4, y: w.y } : m === dr ? { x: FW + 4, y: w.y }
+         : m === du ? { x: w.x, y: -4 } : { x: w.x, y: FH + 4 };
+  w.state = 'leave';
+}
+
+function chooseDest(w) {
+  if (popTarget() < walkers.length - 4 && rng() < 0.3) { setLeave(w); return; }
+  const av = [];
+  for (const q of wells) if (q.alive && q !== w.dest) av.push(q);
+  if (av.length === 0) {
+    const home = (w.dest && w.dest.freq !== undefined && w.dest.alive) ? w.dest : null;
+    if (home) { // the last well: stray a little, come back
+      w.dest = rng() < 0.5 ? home
+        : { x: clamp(home.x + (rng() - 0.5) * 54, 3, FW - 3), y: clamp(home.y + (rng() - 0.5) * 54, 3, FH - 3) };
+    } else {
+      const aw = aliveWells();
+      if (aw.length) w.dest = aw[(rng() * aw.length) | 0]; else { setLeave(w); return; }
+    }
+  } else {
+    let sum = 0;
+    const wts = av.map(q => { const g = 1 / (12 + Math.hypot(q.x - w.x, q.y - w.y)); sum += g; return g; });
+    let r = rng() * sum; w.dest = av[av.length - 1];
+    for (let i = 0; i < av.length; i++) { r -= wts[i]; if (r <= 0) { w.dest = av[i]; break; } }
+  }
+  w.state = 'walk'; w.frust = 0;
+}
+
+function arrive(w) {
+  const d = w.dest;
+  if (d.freq !== undefined && d.alive) {
+    d.visits++; totalVisits++;
+    ringWell(d, 0.55 + rng() * 0.3);
+    if (d.visits >= d.cap) dryWell(d);
+    w.state = 'rest'; w.t = 0.9 + rng() * 2.4;
+  } else {
+    w.state = 'rest'; w.t = 0.3 + rng() * 0.8;
+  }
+  w.frust = 0;
+}
+
+function stepWalker(w, dt) {
+  if (w.state === 'rest') { w.t -= dt; if (w.t <= 0) chooseDest(w); return; }
+  const dx = w.dest.x - w.x, dy = w.dest.y - w.y, dd = Math.hypot(dx, dy);
+  if (w.state === 'leave' && (dd < 1.5 || w.x < -3 || w.x > FW + 3 || w.y < -3 || w.y > FH + 3)) { w.dead = true; return; }
+  if (w.state === 'walk' && dd < 3.5) { arrive(w); return; }
+  const eDir = Math.atan2(dy, dx);
+  w.frust += dt;
+  const beeline = w.frust > 26; // the pressure valve (see the movement's epigraph)
+  let best = w.a, bs = -Infinity;
+  for (let k = -1; k <= 1; k++) {
+    const ca = w.a + k * 0.55;
+    const px = w.x + Math.cos(ca) * 6, py = w.y + Math.sin(ca) * 6;
+    const s = 1.6 * Math.cos(ca - eDir)                                    // thirst
+            + (beeline ? 0 : 0.38 * Math.min(groundAt(px, py), 5) * w.way) // habit
+            - 2.4 * roughAt(px, py)                                        // country
+            + (rng() - 0.5) * 0.5;                                         // whim
+    if (s > bs) { bs = s; best = ca; }
+  }
+  const turn = dd < 8 ? 6.5 : 3.0;
+  w.a += clamp(angdiff(w.a, best), -turn * dt, turn * dt);
+  // worn ground is faster ground — the second half of the feedback loop
+  let sp = w.spd * (1 + 0.35 * Math.min(groundAt(w.x, w.y) / 5, 1)) * (1 - 0.5 * roughAt(w.x, w.y));
+  if (dd < 8) sp *= 0.6;
+  w.x += Math.cos(w.a) * sp * dt;
+  w.y += Math.sin(w.a) * sp * dt;
+  if (w.state !== 'leave') { w.x = clamp(w.x, 1, FW - 1); w.y = clamp(w.y, 1, FH - 1); }
+  w.ph += sp * dt * 0.9;
+  if (w.x >= 0 && w.x < FW && w.y >= 0 && w.y < FH) {
+    const i = (w.y | 0) * FW + (w.x | 0);
+    trail[i] = Math.min(trail[i] + 3.4 * dt, 10);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT VI · THE MUSIC — the instrument, from first principles
+   No samples, no soundfonts. A plucked string is computed here the way
+   Karplus & Strong computed it: a burst of noise fed through its own
+   delayed average, written sample-by-sample into a buffer. The bell is
+   additive, tuned to real campanological partials — hum, prime, the
+   minor-third tierce, quint, nominal. The hall it all rings in is a
+   convolution against 2.6 seconds of seeded, exponentially dying noise.
+   The score is the road network itself: a note sounds only when a walk
+   ends, so the rhythm of the piece is the geometry of the town.
+   ───────────────────────────────────────────────────────────────────────── */
+let AC = null, master, comp, dry, wet, windGain, bpf, droneGain;
+let voices = 0, noteBudget = 9;
+const ksCache = new Map();
+
+function initAudio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return;
+  AC = new Ctor();
+  comp = AC.createDynamicsCompressor(); comp.threshold.value = -20; comp.ratio.value = 5;
+  master = AC.createGain(); master.gain.value = 0.85;
+  master.connect(comp); comp.connect(AC.destination);
+  dry = AC.createGain(); dry.gain.value = 0.8; dry.connect(master);
+  // the hall: impulse response synthesized from the seed
+  const conv = AC.createConvolver();
+  const irLen = Math.floor(AC.sampleRate * 2.6);
+  const ir = AC.createBuffer(2, irLen, AC.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const ch = ir.getChannelData(c);
+    for (let i = 0; i < irLen; i++) ch[i] = (arng() * 2 - 1) * Math.exp(-3.4 * i / irLen) * 0.5;
+  }
+  conv.buffer = ir;
+  wet = AC.createGain(); wet.gain.value = 0.4; wet.connect(conv); conv.connect(master);
+  // the wind: filtered noise; it grows when the town empties
+  const nb = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
+  const nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = arng() * 2 - 1;
+  const ns = AC.createBufferSource(); ns.buffer = nb; ns.loop = true;
+  bpf = AC.createBiquadFilter(); bpf.type = 'bandpass'; bpf.frequency.value = 460; bpf.Q.value = 1.1;
+  windGain = AC.createGain(); windGain.gain.value = 0;
+  ns.connect(bpf); bpf.connect(windGain); windGain.connect(dry); windGain.connect(wet);
+  ns.start();
+  // the drone: D and A, barely there, swelling with population
+  droneGain = AC.createGain(); droneGain.gain.value = 0;
+  for (const f of [73.42, 110.0]) {
+    const o = AC.createOscillator(); o.frequency.value = f;
+    const g = AC.createGain(); g.gain.value = 0.5;
+    o.connect(g); g.connect(droneGain); o.start();
+  }
+  droneGain.connect(dry); droneGain.connect(wet);
+}
+
+function ksBuffer(freq) { // Karplus-Strong, computed by hand — the virtuosity claim
+  const key = Math.round(freq * 4);
+  let b = ksCache.get(key);
+  if (b) return b;
+  const sr = AC.sampleRate;
+  const N = Math.max(2, Math.round(sr / freq));
+  const len = Math.floor(sr * (freq < 220 ? 3.0 : 2.1));
+  const data = new Float32Array(len);
+  let prev = 0;
+  for (let i = 0; i < N; i++) { const r = arng() * 2 - 1; data[i] = (r + prev) * 0.5; prev = r; } // softened pick
+  data[N] = data[0] * 0.997;
+  for (let i = N + 1; i < len; i++) data[i] = (data[i - N] + data[i - N - 1]) * 0.4985; // the string
+  const F = 4000;
+  for (let i = Math.max(0, len - F); i < len; i++) data[i] *= (len - i) / F;
+  b = AC.createBuffer(1, len, sr);
+  b.copyToChannel(data, 0);
+  ksCache.set(key, b);
+  return b;
+}
+
+function pluck(freq, vel, pan, delay) {
+  if (!AC || voices >= 14 || noteBudget <= 0) return;
+  noteBudget--; voices++;
+  const src = AC.createBufferSource(); src.buffer = ksBuffer(freq);
+  src.playbackRate.value = 1 + (arng() - 0.5) * 0.004;
+  const g = AC.createGain(); g.gain.value = vel * 0.5;
+  src.connect(g);
+  let out = g;
+  if (AC.createStereoPanner) { const p = AC.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); g.connect(p); out = p; }
+  out.connect(dry); out.connect(wet);
+  src.onended = () => { voices--; try { src.disconnect(); g.disconnect(); out.disconnect(); } catch (e) {} };
+  src.start(AC.currentTime + (delay || 0));
+}
+
+function bell(freq, vel) { // hum · prime · tierce · quint · nominal …
+  if (!AC) return;
+  const t = AC.currentTime;
+  const parts = [[0.5, 0.55, 7], [1, 1, 5.5], [1.183, 0.62, 4.2], [1.506, 0.42, 3.4], [2.0, 0.35, 2.7], [2.662, 0.22, 2.0], [3.011, 0.12, 1.5]];
+  const g0 = AC.createGain(); g0.gain.value = 1;
+  g0.connect(dry); g0.connect(wet);
+  let first = null;
+  for (const [r, amp, dec] of parts) {
+    const f = freq * r * (1 + (arng() - 0.5) * 0.004);
+    if (f > AC.sampleRate * 0.45) continue;
+    const o = AC.createOscillator(); o.frequency.value = f;
+    const g = AC.createGain();
+    g.gain.setValueAtTime(vel * amp * 0.15, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+    o.connect(g); g.connect(g0);
+    o.start(t); o.stop(t + dec + 0.1);
+    if (!first) first = o;
+  }
+  if (first) first.onended = () => { try { g0.disconnect(); } catch (e) {} };
+}
+
+function ringWell(w, vel) {
+  w.ripples.push({ age: 0 });
+  if (!AC) return;
+  if (simTime - w.lastRing < 0.33) return;
+  w.lastRing = simTime;
+  const pan = (w.x / FW * 2 - 1) * 0.7;
+  pluck(w.freq, vel, pan, 0);
+  if (arng() < 0.16) pluck(w.freq * 1.4983, vel * 0.4, -pan * 0.5, 0.28); // a fifth, answering
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT VII · THE ERAS — growth, decline, mortality
+   THE RISK LIVES HERE. Population follows the wells; wells run dry;
+   houses ruin; when nothing is left, the walkers walk off the map and
+   only wind and ghost roads remain. Nothing rescues the piece. A rare
+   stranger crosses the ruins — retracing, without knowing it, the
+   roads of the dead town — and leaves. Silence is a permitted ending.
+   ───────────────────────────────────────────────────────────────────────── */
+let spawnT = 1.5, buildT = 8, wandererT = 30, nbT = 1, ambT = 0;
+
+function stepEras(dt) {
+  spawnT -= dt;
+  if (spawnT <= 0) {
+    spawnT = 2.2 + rng() * 2;
+    const aw = aliveWells();
+    if (aw.length && walkers.length < popTarget()) spawnWalker(aw[(rng() * aw.length) | 0]);
+  }
+  if (aliveWells().length === 0) {
+    wandererT -= dt;
+    if (wandererT <= 0) { wandererT = 45 + rng() * 55; spawnLoneWanderer(); }
+  } else wandererT = 30;
+  buildT -= dt;
+  if (buildT <= 0) {
+    buildT = 5;
+    if (simTime > 75 && buildings.filter(b => b.alive).length < 40) tryBuilding();
+    decayBuildings();
+  }
+  nbT -= dt;
+  if (nbT <= 0) { nbT = 1; noteBudget = 9; }
+  // the ambient voices follow the town's fortunes
+  ambT -= dt;
+  if (AC && ambT <= 0) {
+    ambT = 0.5;
+    const pop = walkers.length, t = AC.currentTime;
+    windGain.gain.setTargetAtTime(0.05 + 0.10 * (1 - Math.min(pop / 22, 1)), t, 1.2);
+    droneGain.gain.setTargetAtTime(Math.min(pop / 40, 1) * 0.045, t, 2.0);
+    bpf.frequency.setTargetAtTime(380 + vnoise(simTime * 0.05, 9.1) * 450, t, 0.8);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT VIII · THE HAND — what the visitor may do (never told, only found)
+   touch ground : found a well — a reason to walk; roads follow by themselves
+   touch a well : call it — its note sounds, and walkers turn toward it
+   hold a well  : cap it — the town must live without it; the roads to it
+                  will fade, but their scars will not
+   ───────────────────────────────────────────────────────────────────────── */
+let press = null;
+
+function toField(cx, cy) {
+  const r = cv.getBoundingClientRect();
+  return [(cx - r.left) / SX, (cy - r.top) / SY];
+}
+function summon(w) {
+  ringWell(w, 0.85);
+  for (const k of walkers) {
+    if (k.state !== 'leave' && k.dest !== w && rng() < 0.55) { k.dest = w; k.state = 'walk'; k.frust = 0; }
+  }
+}
+cv.addEventListener('pointerdown', e => {
+  initAudio();
+  const [fx, fy] = toField(e.clientX, e.clientY);
+  press = { sx: e.clientX, sy: e.clientY, fx, fy, t: simTime, moved: false, done: false, well: nearestWell(fx, fy, 4) };
+});
+addEventListener('pointermove', e => {
+  if (press && Math.hypot(e.clientX - press.sx, e.clientY - press.sy) > 7) press.moved = true;
+});
+addEventListener('pointerup', () => {
+  if (!press) return;
+  const p = press; press = null;
+  if (p.done || p.moved) return;
+  if (simTime - p.t < 0.45) {
+    const near = nearestWell(p.fx, p.fy, 5);
+    if (near && near.alive) summon(near);
+    else if (!near && p.fx > 2 && p.fx < FW - 2 && p.fy > 2 && p.fy < FH - 2) foundWell(p.fx, p.fy, false);
+    // touching a ruin does nothing: a grave stays a grave
+  }
+});
+addEventListener('pointercancel', () => { press = null; });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('visibilitychange', () => {
+  if (!AC) return;
+  if (document.hidden) AC.suspend(); else AC.resume();
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVEMENT IX · THE HOURS — the loop, and the drawing of the map
+   ───────────────────────────────────────────────────────────────────────── */
+function drawWell(w) {
+  const x = w.x * SX, y = w.y * SY;
+  ctx.lineWidth = 1.4;
+  if (w.alive) {
+    ctx.strokeStyle = 'rgba(43,33,21,0.85)';
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, TAU); ctx.stroke();
+    ctx.fillStyle = 'rgba(43,33,21,0.9)';
+    ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fill();
+    const wear = w.visits / w.cap; // the water running out, if you look closely
+    if (wear > 0.15) {
+      ctx.strokeStyle = 'rgba(43,33,21,0.35)';
+      ctx.beginPath(); ctx.arc(x, y, 10, -Math.PI / 2, -Math.PI / 2 + wear * TAU); ctx.stroke();
+    }
+  } else {
+    ctx.strokeStyle = 'rgba(43,33,21,0.45)';
+    for (let k = 0; k < 4; k++) {
+      const a0 = k * TAU / 4 + 0.35;
+      ctx.beginPath(); ctx.arc(x, y, 7, a0, a0 + 0.8); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.stroke();
+  }
+  for (const r of w.ripples) {
+    ctx.strokeStyle = 'rgba(43,33,21,' + (0.35 * (1 - r.age / 1.1)).toFixed(3) + ')';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(x, y, 8 + r.age * 24, 0, TAU); ctx.stroke();
+  }
+}
+function drawBuilding(b) {
+  ctx.save();
+  ctx.translate(b.x * SX, b.y * SY); ctx.rotate(b.rot);
+  ctx.lineWidth = 1.2;
+  if (b.alive) {
+    ctx.strokeStyle = 'rgba(43,33,21,0.8)';
+    ctx.strokeRect(-b.w / 2, -b.h / 2, b.w, b.h);
+    ctx.beginPath(); ctx.moveTo(-b.w / 2, 0); ctx.lineTo(b.w / 2, 0); ctx.stroke();
+  } else {
+    ctx.strokeStyle = 'rgba(43,33,21,0.35)';
+    for (let k = 0; k < 3; k++) {
+      const ox = (k - 1) * b.w * 0.3;
+      ctx.beginPath(); ctx.moveTo(ox - 2, b.h * 0.2); ctx.lineTo(ox + 2, -b.h * 0.2); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+function drawWalker(w) {
+  const wob = Math.sin(w.ph) * 1.3;
+  const x = w.x * SX - Math.sin(w.a) * wob, y = w.y * SY + Math.cos(w.a) * wob;
+  ctx.fillStyle = 'rgba(30,22,12,0.85)';
+  if (w.state === 'rest') { ctx.beginPath(); ctx.arc(x, y, 1.5, 0, TAU); ctx.fill(); return; }
+  ctx.strokeStyle = 'rgba(30,22,12,0.85)'; ctx.lineWidth = 1.3;
+  ctx.beginPath(); ctx.moveTo(x - Math.cos(w.a) * 4, y - Math.sin(w.a) * 4); ctx.lineTo(x, y); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, 1.6, 0, TAU); ctx.fill();
+}
+
+function render() {
+  ctx.drawImage(P, 0, 0, W, H);
+  // the ink of wear: ghost roads faint and permanent, living roads dark
+  const d = img.data;
+  for (let i = 0; i < NC; i++) {
+    d[i * 4 + 3] = Math.min(230, scar[i] * 58 + (1 - Math.exp(-trail[i] * 0.30)) * 165);
+  }
+  tctx.putImageData(img, 0, 0);
+  ctx.drawImage(TC, 0, 0, W, H);
+  for (const b of buildings) drawBuilding(b);
+  for (const w of wells) drawWell(w);
+  for (const k of walkers) drawWalker(k);
+  // the hours of the day, faintly
+  const ph = Math.sin(simTime * TAU / 240);
+  ctx.globalAlpha = 0.04 * Math.abs(ph);
+  ctx.fillStyle = ph > 0 ? '#ffb45e' : '#4c6a92';
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 1;
+  // holding a well: the capping ring closes
+  if (press && press.well && press.well.alive && !press.moved && !press.done) {
+    const f = clamp((simTime - press.t) / 0.85, 0, 1);
+    if (f > 0.12) {
+      ctx.strokeStyle = 'rgba(43,33,21,0.6)'; ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(press.well.x * SX, press.well.y * SY, 13, -Math.PI / 2, -Math.PI / 2 + f * TAU);
+      ctx.stroke();
+    }
+  }
+}
+
+function tick(dt) {
+  simTime += dt;
+  stepField(dt);
+  for (const w of walkers) stepWalker(w, dt);
+  for (let i = walkers.length - 1; i >= 0; i--) if (walkers[i].dead) walkers.splice(i, 1);
+  stepEras(dt);
+  for (const w of wells) {
+    for (const r of w.ripples) r.age += dt;
+    w.ripples = w.ripples.filter(r => r.age < 1.1);
+  }
+  // the hand, held down long enough, caps a well
+  if (press && press.well && press.well.alive && !press.moved && !press.done && simTime - press.t > 0.85) {
+    press.done = true;
+    dryWell(press.well);
+  }
+}
+
+/* — the first hour: two or three springs, a handful of walkers arriving — */
+resize();
+{
+  const place = (x0, x1) => {
+    for (let k = 0; k < 12; k++) {
+      const x = FW * (x0 + rng() * (x1 - x0)), y = FH * (0.2 + rng() * 0.6);
+      if (roughAt(x, y) < 0.25) return foundWell(x, y, true);
+    }
+    return foundWell(FW * (x0 + x1) / 2, FH * 0.5, true);
+  };
+  place(0.16, 0.34);
+  place(0.62, 0.82);
+  if (rng() < 0.45) place(0.36, 0.6);
+  for (let i = 0; i < 7; i++) spawnWalker(wells[(rng() * wells.length) | 0]);
+}
+
+let last = performance.now();
+function frame(t) {
+  const dt = Math.min((t - last) / 1000, 0.05);
+  last = t;
+  tick(dt);
+  render();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
+<!--
+  CODA — I attempted a town that composes itself: roads worn rather than
+  drawn, a score performed only by arrival, a ground that scars instead of
+  forgetting. It strained where erosion constants meet legibility — paths
+  must converge without congealing into slime-mold, and the difference is
+  four or five numbers held in tension. Next I would dare inheritance:
+  walkers whose children keep their parents' detours, so that culture,
+  not only ground, remembers.
+-->
