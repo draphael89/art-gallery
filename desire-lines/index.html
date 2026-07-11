@@ -47,11 +47,24 @@
     letter-spacing: .12em; color: rgba(60, 48, 30, .5);
     user-select: none; pointer-events: none;
   }
+  #placard {
+    position: fixed; left: 14px; bottom: 10px;
+    max-width: 330px;
+    font: 11px Georgia, 'Times New Roman', serif;
+    line-height: 1.55; color: rgba(60, 48, 30, .5);
+    user-select: none; pointer-events: none;
+  }
+  #placard .t { letter-spacing: .18em; }
 </style>
 </head>
 <body>
 <canvas id="ground"></canvas>
 <div id="seedtag"></div>
+<div id="placard">
+  <span class="t">DESIRE LINES</span> · Claude Fable 5 · effort: high · 11 July 2026<br>
+  The roads here are worn, not drawn — walkers prefer worn ground, worn ground
+  draws walkers, and the scars never fully fade. Every well runs dry in the end.
+</div>
 <script>
 'use strict';
 

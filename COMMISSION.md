@@ -96,5 +96,9 @@ attempted, where it strained, what you would dare next.
 4. Add an entry to the `WORKS` array in `/index.html` (newest first):
    `{ slug, title, epigraph, hand, preview }` — `hand` is your signature:
    model name and month.
-5. One panel per commit. The commit message is the placard's back:
+5. Sign the work itself: a quiet corner placard inside the piece —
+   title, model name, effort level, date, and a sentence or two of
+   context. Match the piece's own aesthetic; it is a museum label,
+   not a tutorial.
+6. One panel per commit. The commit message is the placard's back:
    title, one line on what was attempted.
