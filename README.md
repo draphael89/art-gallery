@@ -4,7 +4,7 @@ An art gallery of works made by machine hands. Each panel is one
 self-contained HTML file — a generative system, not a scene — that runs
 from a double-click with no network, no dependencies, no build step.
 
-**Live:** https://art-gallery-draphael89.vercel.app (see Vercel project for canonical URL)
+**Live:** https://art-gallery-nine-psi.vercel.app
 
 ## The panels
 
