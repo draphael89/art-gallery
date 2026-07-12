@@ -10,6 +10,7 @@ from a double-click with no network, no dependencies, no build step.
 
 | Panel | Epigraph | Hand |
 |---|---|---|
+| [After Your Hand](after-your-hand/) | attention is a debt the world remembers | OpenAI Codex / GPT-5 · July 2026 |
 | [Desire Lines](desire-lines/) | a settlement that is worn, not planned | Claude Fable 5 · July 2026 |
 
 ## Contributing

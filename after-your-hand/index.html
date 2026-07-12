@@ -1,0 +1,1255 @@
+<!--
+  AFTER YOUR HAND
+
+  I have not seen an artwork make attention into a conserved ecological debt:
+  wherever the visitor looks, the manuscript is fed; wherever they cut it,
+  the future must route around a wound that can be repaired but never undone.
+
+  THE RISK: the ecology is deliberately not stabilized. A lineage may overrun
+  the page, a wound may never close, and the synthesized choir may thin toward
+  silence. Reloading is the only clean slate; the work does not rescue itself.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090b0d">
+  <title>After Your Hand</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --soot: #090b0d;
+      --bone: #e7ddc2;
+      --verdigris: #709582;
+      --ochre: #a9503d;
+      --gold: #d2ad63;
+      --ease-out: cubic-bezier(.16, 1, .3, 1);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--soot);
+    }
+
+    body {
+      position: relative;
+      font-family: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+      overscroll-behavior: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .folio {
+      position: fixed;
+      z-index: 2;
+      right: max(15px, env(safe-area-inset-right));
+      bottom: max(13px, env(safe-area-inset-bottom));
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: rgba(231, 221, 194, .47);
+      font: 10px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .folio::before {
+      content: "";
+      width: 24px;
+      height: 1px;
+      background: currentColor;
+      opacity: .55;
+    }
+
+    .work-placard {
+      position: fixed;
+      z-index: 2;
+      left: max(15px, env(safe-area-inset-left));
+      bottom: max(13px, env(safe-area-inset-bottom));
+      max-width: 430px;
+      color: rgba(231, 221, 194, .38);
+      font: 10px/1.48 "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+      letter-spacing: .035em;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .work-placard .work-title {
+      color: rgba(231, 221, 194, .55);
+      letter-spacing: .19em;
+    }
+
+    #sound-mark {
+      position: fixed;
+      z-index: 3;
+      top: max(12px, env(safe-area-inset-top));
+      right: max(12px, env(safe-area-inset-right));
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      color: rgba(231, 221, 194, .48);
+      background: transparent;
+      font: 19px/1 Georgia, serif;
+      cursor: pointer;
+      transition: color 180ms ease, transform 150ms var(--ease-out);
+    }
+
+    #sound-mark::after {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      opacity: .42;
+      transform: scale(.74);
+      transition: transform 220ms var(--ease-out), opacity 180ms ease;
+    }
+
+    #sound-mark[data-sounding="true"] {
+      color: rgba(210, 173, 99, .82);
+    }
+
+    #sound-mark[data-sounding="true"]::after {
+      opacity: .8;
+      transform: scale(1);
+    }
+
+    #sound-mark:active { transform: scale(.94); }
+
+    #sound-mark:focus-visible {
+      outline: 1px solid rgba(210, 173, 99, .85);
+      outline-offset: 2px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      #sound-mark:hover { color: rgba(231, 221, 194, .84); }
+    }
+
+    @media (max-width: 700px) {
+      .work-placard {
+        right: max(15px, env(safe-area-inset-right));
+        bottom: max(42px, calc(env(safe-area-inset-bottom) + 42px));
+        max-width: none;
+        font-size: 9px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #sound-mark,
+      #sound-mark::after { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="world" aria-label="A living manuscript that grows where it is observed and remembers where it is touched."></canvas>
+  <button id="sound-mark" type="button" aria-label="Begin the manuscript's sound" aria-pressed="false">·</button>
+  <div class="work-placard" role="note">
+    <span class="work-title">AFTER YOUR HAND</span> · OpenAI Codex / GPT-5 · effort: high · 11 July 2026<br>
+    Attention feeds the manuscript; touch founds a lineage; dragging leaves a debt the ecology can only carry forward.
+  </div>
+  <div class="folio" aria-hidden="true">
+    <span id="seed-label"></span>
+    <span id="age-label">I · 00:00</span>
+  </div>
+  <p class="sr-only">Move across the field, press, or drag. The work remembers.</p>
+
+  <script>
+  (() => {
+    'use strict';
+
+    // ── THE CITABLE PERFORMANCE ──────────────────────────────────────────────
+    // A hash is both title-page and genome. All autonomous choices descend from
+    // it; the visitor's timing is the only other source of history.
+
+    const supplied = decodeURIComponent(location.hash.slice(1)).trim();
+    const generated = (() => {
+      const words = new Uint32Array(2);
+      crypto.getRandomValues(words);
+      return [...words].map(n => n.toString(16).padStart(8, '0')).join('').toUpperCase();
+    })();
+    const SEED_TEXT = (supplied || generated).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || generated;
+    if (!supplied) history.replaceState(null, '', `#${SEED_TEXT}`);
+
+    function xmur3(text) {
+      let h = 1779033703 ^ text.length;
+      for (let i = 0; i < text.length; i++) {
+        h = Math.imul(h ^ text.charCodeAt(i), 3432918353);
+        h = h << 13 | h >>> 19;
+      }
+      return () => {
+        h = Math.imul(h ^ h >>> 16, 2246822507);
+        h = Math.imul(h ^ h >>> 13, 3266489909);
+        return (h ^= h >>> 16) >>> 0;
+      };
+    }
+
+    function sfc32(a, b, c, d) {
+      return () => {
+        a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+        let t = (a + b | 0) + d | 0;
+        d = d + 1 | 0;
+        a = b ^ b >>> 9;
+        b = c + (c << 3) | 0;
+        c = c << 21 | c >>> 11;
+        c = c + t | 0;
+        return (t >>> 0) / 4294967296;
+      };
+    }
+
+    function makeRng(suffix) {
+      const seed = xmur3(`${SEED_TEXT}:${suffix}`);
+      return sfc32(seed(), seed(), seed(), seed());
+    }
+
+    const simRandom = makeRng('ecology');
+    const audioRandom = makeRng('choir');
+    const visualSeed = xmur3(`${SEED_TEXT}:vellum`)();
+    const seedLabel = document.querySelector('#seed-label');
+    const ageLabel = document.querySelector('#age-label');
+    seedLabel.textContent = `seed ${SEED_TEXT}`;
+
+    function hash2(x, y, salt = 0) {
+      let n = Math.imul((x | 0) ^ visualSeed ^ salt, 0x45d9f3b);
+      n = Math.imul(n ^ (y | 0), 0x45d9f3b);
+      n ^= n >>> 16;
+      return (n >>> 0) / 4294967295;
+    }
+
+    function smoothNoise(x, y, salt = 0) {
+      const x0 = Math.floor(x), y0 = Math.floor(y);
+      const fx = x - x0, fy = y - y0;
+      const u = fx * fx * (3 - 2 * fx);
+      const v = fy * fy * (3 - 2 * fy);
+      const a = hash2(x0, y0, salt);
+      const b = hash2(x0 + 1, y0, salt);
+      const c = hash2(x0, y0 + 1, salt);
+      const d = hash2(x0 + 1, y0 + 1, salt);
+      return (a + (b - a) * u) * (1 - v) + (c + (d - c) * u) * v;
+    }
+
+    function fbm(x, y) {
+      return smoothNoise(x, y, 17) * .57
+        + smoothNoise(x * 2.03, y * 2.03, 43) * .29
+        + smoothNoise(x * 4.11, y * 4.11, 89) * .14;
+    }
+
+    // ── THE SUBSTRATE ────────────────────────────────────────────────────────
+    // The grid is hexagonal, but the marks are calligraphic. The visitor sees a
+    // manuscript; the ecology sees only resource, kinship, age, and scar.
+
+    const canvas = document.querySelector('#world');
+    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ratio = Math.max(.58, Math.min(1.78, innerHeight / innerWidth));
+    const WORLD_W = 1200;
+    const WORLD_H = WORLD_W * ratio;
+    const COLS = innerWidth < 700 ? 48 : 84;
+    const ROWS = Math.max(40, Math.round(COLS * WORLD_H / WORLD_W));
+    const COUNT = COLS * ROWS;
+    const STEP_X = WORLD_W / COLS;
+    const STEP_Y = WORLD_H / ROWS;
+    const startTime = performance.now();
+
+    const life = new Float32Array(COUNT);
+    const nextLife = new Float32Array(COUNT);
+    const food = new Float32Array(COUNT);
+    const nextFood = new Float32Array(COUNT);
+    const age = new Float32Array(COUNT);
+    const memory = new Float32Array(COUNT);
+    const scar = new Float32Array(COUNT);
+    const lineage = new Uint8Array(COUNT);
+    const parent = new Int8Array(COUNT);
+    const repair = new Uint8Array(COUNT);
+    const archive = document.createElement('canvas');
+    archive.width = Math.ceil(WORLD_W);
+    archive.height = Math.ceil(WORLD_H);
+    const archiveCtx = archive.getContext('2d');
+    const births = [];
+    const seals = [];
+    let liveCount = 0;
+    let scarCount = 0;
+    let deathCount = 0;
+    let tickNumber = 0;
+
+    const pointer = {
+      x: WORLD_W * .5,
+      y: WORLD_H * .5,
+      px: WORLD_W * .5,
+      py: WORLD_H * .5,
+      inside: false,
+      down: false,
+      moved: 0,
+      downAt: 0,
+      lastCutX: 0,
+      lastCutY: 0
+    };
+
+    const lineColors = [
+      [0, 0, 0],
+      [231, 221, 194],
+      [112, 149, 130],
+      [169, 80, 61],
+      [210, 173, 99]
+    ];
+
+    function clamp(value, lo = 0, hi = 1) {
+      return Math.max(lo, Math.min(hi, value));
+    }
+
+    function indexOf(col, row) {
+      return row < 0 || row >= ROWS || col < 0 || col >= COLS ? -1 : row * COLS + col;
+    }
+
+    function cellCenter(index) {
+      const row = Math.floor(index / COLS);
+      const col = index - row * COLS;
+      return {
+        x: (col + .5 + (row & 1) * .5) * STEP_X,
+        y: (row + .5) * STEP_Y
+      };
+    }
+
+    function neighborIndex(index, direction) {
+      const row = Math.floor(index / COLS);
+      const col = index - row * COLS;
+      const even = !(row & 1);
+      const directions = even
+        ? [[1, 0], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]]
+        : [[1, 0], [1, -1], [0, -1], [-1, 0], [0, 1], [1, 1]];
+      const delta = directions[direction];
+      return indexOf(col + delta[0], row + delta[1]);
+    }
+
+    function nearestIndex(x, y) {
+      const row = clamp(Math.floor(y / STEP_Y), 0, ROWS - 1);
+      const col = clamp(Math.floor(x / STEP_X - (row & 1) * .5), 0, COLS - 1);
+      return indexOf(col, row);
+    }
+
+    function phaseAt(seconds) {
+      if (seconds < 45) return 0;
+      if (seconds < 150) return 1;
+      if (seconds < 300) return 2;
+      return 3;
+    }
+
+    function phaseRoman(phase) {
+      return ['I', 'II', 'III', 'IV'][phase];
+    }
+
+    function seedCell(index, kin, vitality = .86) {
+      if (index < 0) return;
+      life[index] = Math.max(life[index], vitality);
+      food[index] = Math.max(food[index], .86);
+      lineage[index] = kin;
+      age[index] = 0;
+      parent[index] = 0;
+    }
+
+    function initializeEcology() {
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          const index = indexOf(col, row);
+          const river = fbm(col / 17, row / 17);
+          const grain = hash2(col, row, 313);
+          food[index] = clamp(.12 + river * .73 + grain * .11);
+        }
+      }
+
+      const founders = Math.round(11 + ratio * 5 + simRandom() * 4);
+      for (let i = 0; i < founders; i++) {
+        const col = 5 + Math.floor(simRandom() * (COLS - 10));
+        const row = 4 + Math.floor(simRandom() * (ROWS - 8));
+        const founder = indexOf(col, row);
+        const kin = 1 + i % 3;
+        seedCell(founder, kin, .78 + simRandom() * .2);
+        for (let direction = 0; direction < 6; direction++) {
+          if (simRandom() < .48) continue;
+          const child = neighborIndex(founder, direction);
+          seedCell(child, kin, .42 + simRandom() * .22);
+          if (child >= 0) parent[child] = (direction + 3) % 6 + 1;
+        }
+      }
+    }
+
+    // ── THE ARCHIVE ──────────────────────────────────────────────────────────
+    // Death is not deletion. Marks migrate into a permanent plate beneath the
+    // living layer, so duration has literal mass in the image.
+
+    function traceGlyph(target, index, strength, color, kind = 0) {
+      const { x, y } = cellCenter(index);
+      const row = Math.floor(index / COLS);
+      const col = index - row * COLS;
+      const choice = Math.floor(hash2(col, row, 701 + kind) * 5);
+      const turn = (hash2(col, row, 811 + kind) - .5) * 1.1;
+      const size = Math.min(STEP_X, STEP_Y) * (.31 + strength * .43);
+      target.save();
+      target.translate(x, y);
+      target.rotate(turn);
+      target.strokeStyle = color;
+      target.lineWidth = Math.max(.72, strength * 1.72);
+      target.lineCap = 'round';
+      target.lineJoin = 'round';
+      target.beginPath();
+      if (choice === 0) {
+        target.moveTo(-size * .48, size * .35);
+        target.quadraticCurveTo(size * .07, -size * .66, size * .4, size * .12);
+        target.quadraticCurveTo(size * .17, size * .48, -size * .1, size * .28);
+      } else if (choice === 1) {
+        target.moveTo(-size * .44, -size * .22);
+        target.lineTo(size * .35, -size * .32);
+        target.lineTo(size * .12, size * .38);
+        target.lineTo(-size * .44, -size * .22);
+      } else if (choice === 2) {
+        target.arc(-size * .08, 0, size * .35, -.9, 2.25);
+        target.moveTo(size * .06, -size * .42);
+        target.lineTo(size * .37, size * .43);
+      } else if (choice === 3) {
+        target.moveTo(-size * .43, -size * .38);
+        target.quadraticCurveTo(size * .32, -size * .18, -size * .08, size * .05);
+        target.quadraticCurveTo(-size * .38, size * .31, size * .4, size * .4);
+      } else {
+        target.moveTo(-size * .37, size * .38);
+        target.lineTo(-size * .04, -size * .42);
+        target.lineTo(size * .37, size * .38);
+        target.moveTo(-size * .22, size * .03);
+        target.lineTo(size * .22, size * .03);
+      }
+      target.stroke();
+      target.restore();
+    }
+
+    function archiveDeath(index, kin) {
+      const c = lineColors[kin || 1];
+      const alpha = .055 + hash2(index, deathCount, 919) * .07;
+      traceGlyph(archiveCtx, index, .52, `rgba(${c[0]},${c[1]},${c[2]},${alpha})`, 2);
+      deathCount++;
+    }
+
+    function archiveWound(index) {
+      const { x, y } = cellCenter(index);
+      const angle = hash2(index, tickNumber, 977) * Math.PI;
+      const size = Math.min(STEP_X, STEP_Y) * .42;
+      archiveCtx.save();
+      archiveCtx.translate(x, y);
+      archiveCtx.rotate(angle);
+      archiveCtx.strokeStyle = 'rgba(169,80,61,.17)';
+      archiveCtx.lineWidth = 1.05;
+      archiveCtx.beginPath();
+      archiveCtx.moveTo(-size, 0);
+      archiveCtx.bezierCurveTo(-size * .28, -size * .23, size * .2, size * .2, size, 0);
+      archiveCtx.stroke();
+      archiveCtx.restore();
+    }
+
+    function archiveSeal(index, kin) {
+      const { x, y } = cellCenter(index);
+      const c = lineColors[kin];
+      archiveCtx.save();
+      archiveCtx.translate(x, y);
+      archiveCtx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},.22)`;
+      archiveCtx.lineWidth = 1;
+      archiveCtx.rotate(hash2(index, tickNumber, 1009) * Math.PI);
+      const radius = Math.min(STEP_X, STEP_Y) * 1.28;
+      archiveCtx.strokeRect(-radius, -radius, radius * 2, radius * 2);
+      archiveCtx.beginPath();
+      archiveCtx.arc(0, 0, radius * .55, 0, Math.PI * 2);
+      archiveCtx.stroke();
+      archiveCtx.restore();
+    }
+
+    // ── THE ECOLOGY ──────────────────────────────────────────────────────────
+    // Resource diffuses; living marks consume it; crowding and age kill them.
+    // Wounds poison resource yet create a rare condition for golden repair.
+
+    function countNeighbors(index) {
+      let alive = 0;
+      let same = 0;
+      let totalFood = 0;
+      for (let d = 0; d < 6; d++) {
+        const n = neighborIndex(index, d);
+        if (n < 0) continue;
+        totalFood += food[n];
+        if (life[n] > .12) {
+          alive++;
+          if (lineage[n] === lineage[index]) same++;
+        }
+      }
+      return { alive, same, averageFood: totalFood / 6 };
+    }
+
+    function attend() {
+      if (!pointer.inside || pointer.down) return;
+      const center = nearestIndex(pointer.x, pointer.y);
+      if (center < 0) return;
+      const centerRow = Math.floor(center / COLS);
+      const centerCol = center - centerRow * COLS;
+      for (let dy = -4; dy <= 4; dy++) {
+        for (let dx = -4; dx <= 4; dx++) {
+          const distance = Math.hypot(dx, dy);
+          if (distance > 4) continue;
+          const target = indexOf(centerCol + dx, centerRow + dy);
+          if (target < 0) continue;
+          food[target] = clamp(food[target] + (1 - distance / 4) * .0032);
+        }
+      }
+    }
+
+    function ecologyTick(dt, seconds) {
+      tickNumber++;
+      const era = phaseAt(seconds);
+      const growth = [1.28, .92, .49, .25][era];
+      const mortality = [.18, .25, .61, .78][era];
+      const repairChance = [.00005, .00035, .0024, .0042][era];
+      births.length = 0;
+      nextLife.set(life);
+      nextFood.set(food);
+      liveCount = 0;
+      scarCount = 0;
+      attend();
+
+      for (let index = 0; index < COUNT; index++) {
+        const local = countNeighbors(index);
+        const wasAlive = life[index] > .018;
+        const rain = (fbm((index % COLS) / 24 + seconds * .001, Math.floor(index / COLS) / 24) - .51) * .0012;
+        const consumption = wasAlive ? (.0014 + life[index] * .0021) : 0;
+        nextFood[index] = clamp(food[index] + (local.averageFood - food[index]) * .033 + rain - consumption - scar[index] * .0018);
+
+        if (scar[index] > .02) {
+          scarCount++;
+          scar[index] *= era >= 2 ? .99992 : .999985;
+        }
+
+        if (!wasAlive) {
+          if (scar[index] > .16 && local.alive > 0 && food[index] > .36 && simRandom() < repairChance) {
+            let donor = -1;
+            for (let d = 0; d < 6 && donor < 0; d++) {
+              const n = neighborIndex(index, d);
+              if (n >= 0 && life[n] > .2) donor = n;
+            }
+            if (donor >= 0) births.push({ index, donor, direction: 0, repair: true });
+          }
+          continue;
+        }
+
+        liveCount++;
+        age[index] += dt;
+        const solitude = local.alive === 0 ? .055 : 0;
+        const crowding = Math.max(0, local.alive - 3) * .047;
+        const oldAge = Math.max(0, age[index] - (54 + hash2(index, lineage[index], 1117) * 95)) * .0017;
+        const nourishment = (food[index] - .34) * .12;
+        const delta = (nourishment - solitude - crowding - oldAge * mortality) * dt;
+        nextLife[index] = clamp(life[index] + delta);
+
+        if (nextLife[index] < .018) {
+          nextLife[index] = 0;
+          memory[index] = clamp(memory[index] + .3 + life[index] * .25);
+          archiveDeath(index, lineage[index]);
+          continue;
+        }
+
+        const fecund = nextLife[index] * food[index] * growth;
+        const invitation = local.alive < 4 && simRandom() < fecund * dt * .092;
+        if (invitation) {
+          const fieldTurn = Math.floor(fbm((index % COLS) / 11, Math.floor(index / COLS) / 11 + seconds * .003) * 6) % 6;
+          const direction = (fieldTurn + Math.floor(simRandom() * 3) - 1 + 6) % 6;
+          const target = neighborIndex(index, direction);
+          if (target >= 0 && life[target] < .018 && scar[target] < .17 && food[target] > .26) {
+            births.push({ index: target, donor: index, direction: (direction + 3) % 6, repair: false });
+          }
+        }
+      }
+
+      for (const birth of births) {
+        if (nextLife[birth.index] > .018) continue;
+        nextLife[birth.index] = .23 + simRandom() * .13;
+        lineage[birth.index] = birth.repair ? 4 : lineage[birth.donor] || 1;
+        parent[birth.index] = birth.direction + 1;
+        age[birth.index] = 0;
+        if (birth.repair) {
+          repair[birth.index] = 1;
+          memory[birth.index] = clamp(memory[birth.index] + .2);
+        }
+      }
+
+      life.set(nextLife);
+      food.set(nextFood);
+
+      // The system is allowed to become sparse, but not computationally inert:
+      // a very rare dormant spore is ecological time, not a safety reset.
+      if (liveCount < 8 && simRandom() < .012) {
+        const dormant = Math.floor(simRandom() * COUNT);
+        if (scar[dormant] < .12) seedCell(dormant, 1 + Math.floor(simRandom() * 3), .31);
+      }
+    }
+
+    function plantAt(x, y) {
+      const center = nearestIndex(x, y);
+      if (center < 0) return;
+      const kin = 1 + Math.floor(simRandom() * 3);
+      const row = Math.floor(center / COLS);
+      const col = center - row * COLS;
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const distance = Math.hypot(dx, dy);
+          if (distance > 2.2) continue;
+          const index = indexOf(col + dx, row + dy);
+          if (index < 0) continue;
+          food[index] = clamp(food[index] + .44 * (1 - distance / 2.5));
+          if (distance < .8) {
+            scar[index] *= .75;
+            seedCell(index, kin, .82);
+          }
+        }
+      }
+      archiveSeal(center, kin);
+      seals.push({ x, y, born: performance.now(), kin, wound: false });
+      score.consecrate(liveCount / COUNT, kin);
+    }
+
+    function cutAt(x, y, radius = 1.55) {
+      const center = nearestIndex(x, y);
+      if (center < 0) return;
+      const row = Math.floor(center / COLS);
+      const col = center - row * COLS;
+      for (let dy = -3; dy <= 3; dy++) {
+        for (let dx = -3; dx <= 3; dx++) {
+          const distance = Math.hypot(dx, dy);
+          if (distance > radius) continue;
+          const index = indexOf(col + dx, row + dy);
+          if (index < 0) continue;
+          if (scar[index] < .2) archiveWound(index);
+          if (life[index] > .018) archiveDeath(index, lineage[index]);
+          scar[index] = 1;
+          life[index] = 0;
+          food[index] *= .08;
+          memory[index] = clamp(memory[index] + .42);
+          repair[index] = 0;
+        }
+      }
+    }
+
+    // ── THE CHOIR: THE PASSAGE OF VERIFIABLE VIRTUOSITY ─────────────────────
+    // Everything audible below is made from oscillators, filters, envelopes,
+    // deterministic noise, and an impulse response synthesized at runtime.
+    // A seeded Euclidean rhythm articulates just-intonation chords. Ecology is
+    // orchestration: population controls breath, scars darken the root, and the
+    // four temporal eras change the harmonic grammar rather than swap tracks.
+
+    function euclidean(pulses, steps) {
+      const pattern = [];
+      let bucket = 0;
+      for (let i = 0; i < steps; i++) {
+        bucket += pulses;
+        if (bucket >= steps) {
+          bucket -= steps;
+          pattern.push(1);
+        } else pattern.push(0);
+      }
+      const rotation = Math.floor(audioRandom() * steps);
+      return pattern.map((_, i) => pattern[(i + rotation) % steps]);
+    }
+
+    class ManuscriptChoir {
+      constructor() {
+        this.context = null;
+        this.master = null;
+        this.droneBus = null;
+        this.voices = [];
+        this.timer = 0;
+        this.nextNote = 0;
+        this.step = 0;
+        this.muted = false;
+        this.started = false;
+        this.pattern = euclidean(5 + Math.floor(audioRandom() * 3), 16);
+        this.root = [40, 45, 48, 54][Math.floor(audioRandom() * 4)];
+      }
+
+      async begin() {
+        if (this.started) {
+          await this.context.resume();
+          return;
+        }
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        this.context = new AudioContext();
+        await this.context.resume();
+
+        const compressor = this.context.createDynamicsCompressor();
+        compressor.threshold.value = -23;
+        compressor.knee.value = 18;
+        compressor.ratio.value = 4;
+        compressor.attack.value = .012;
+        compressor.release.value = .55;
+
+        this.master = this.context.createGain();
+        this.master.gain.value = .0001;
+        this.master.connect(compressor);
+        compressor.connect(this.context.destination);
+
+        this.droneBus = this.context.createGain();
+        this.droneBus.gain.value = .36;
+        const warm = this.context.createBiquadFilter();
+        warm.type = 'lowpass';
+        warm.frequency.value = 920;
+        warm.Q.value = .5;
+        this.droneBus.connect(warm);
+        warm.connect(this.master);
+
+        const reverb = this.context.createConvolver();
+        reverb.buffer = this.makeImpulse(3.6);
+        const wet = this.context.createGain();
+        wet.gain.value = .28;
+        this.droneBus.connect(reverb);
+        reverb.connect(wet);
+        wet.connect(this.master);
+
+        for (let i = 0; i < 4; i++) this.voices.push(this.makeDroneVoice(i));
+        this.master.gain.exponentialRampToValueAtTime(.17, this.context.currentTime + 2.8);
+        this.nextNote = this.context.currentTime + .12;
+        this.timer = window.setInterval(() => this.schedule(), 80);
+        this.started = true;
+        this.setMark(true);
+      }
+
+      makeImpulse(seconds) {
+        const length = Math.floor(this.context.sampleRate * seconds);
+        const impulse = this.context.createBuffer(2, length, this.context.sampleRate);
+        for (let channel = 0; channel < 2; channel++) {
+          const data = impulse.getChannelData(channel);
+          let memory = 0;
+          for (let i = 0; i < length; i++) {
+            const decay = Math.pow(1 - i / length, 2.7);
+            const white = audioRandom() * 2 - 1;
+            memory = memory * .72 + white * .28;
+            data[i] = memory * decay * (channel ? .74 : .78);
+          }
+        }
+        return impulse;
+      }
+
+      makeDroneVoice(position) {
+        const voiceGain = this.context.createGain();
+        voiceGain.gain.value = .0001;
+        voiceGain.connect(this.droneBus);
+        const low = this.context.createOscillator();
+        const breath = this.context.createOscillator();
+        const breathGain = this.context.createGain();
+        low.type = position % 2 ? 'sine' : 'triangle';
+        breath.type = 'sine';
+        breath.detune.value = (position - 1.5) * 3.2;
+        breathGain.gain.value = .16;
+        low.connect(voiceGain);
+        breath.connect(breathGain);
+        breathGain.connect(voiceGain);
+        low.start();
+        breath.start();
+        return { low, breath, gain: voiceGain };
+      }
+
+      chordFor(era) {
+        const grammars = [
+          [1, 3 / 2, 5 / 2, 9 / 4],
+          [1, 4 / 3, 5 / 3, 8 / 3],
+          [1, 6 / 5, 3 / 2, 9 / 5],
+          [1, 7 / 6, 3 / 2, 11 / 6]
+        ];
+        return grammars[era];
+      }
+
+      retune(time, era) {
+        const density = liveCount / COUNT;
+        const wound = scarCount / COUNT;
+        const root = this.root * (wound > .08 ? 7 / 8 : 1);
+        const chord = this.chordFor(era);
+        this.voices.forEach((voice, i) => {
+          const frequency = root * chord[i] * (i ? 2 : 1);
+          voice.low.frequency.setTargetAtTime(frequency, time, 1.8 + i * .2);
+          voice.breath.frequency.setTargetAtTime(frequency * 2.002, time, 2.2);
+          const level = .022 + Math.sqrt(density) * .11 / (1 + i * .22);
+          voice.gain.gain.setTargetAtTime(Math.max(.005, level), time, 2.5);
+        });
+      }
+
+      schedule() {
+        if (!this.context || this.muted) return;
+        const horizon = this.context.currentTime + .2;
+        const seconds = (performance.now() - startTime) / 1000;
+        const era = phaseAt(seconds);
+        const bpm = 43 + era * 3 + Math.min(9, liveCount / Math.max(1, COUNT) * 95);
+        const duration = 60 / bpm / 4;
+
+        while (this.nextNote < horizon) {
+          if (this.step % 16 === 0) this.retune(this.nextNote, era);
+          if (this.pattern[this.step % 16]) {
+            const chord = this.chordFor(era);
+            const degree = (this.step + Math.floor(audioRandom() * 3)) % chord.length;
+            const octave = audioRandom() > .74 ? 4 : 3;
+            this.bell(this.root * chord[degree] * octave, this.nextNote, .035 + audioRandom() * .025);
+          }
+          this.step++;
+          this.nextNote += duration;
+        }
+      }
+
+      bell(frequency, time, strength = .06) {
+        if (!this.context || this.muted) return;
+        const bus = this.context.createGain();
+        const filter = this.context.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(Math.min(3400, frequency * 5), time);
+        filter.Q.value = .72;
+        bus.connect(filter);
+        filter.connect(this.master);
+
+        [1, 2.003, 3.997].forEach((partial, i) => {
+          const oscillator = this.context.createOscillator();
+          const envelope = this.context.createGain();
+          oscillator.type = i === 0 ? 'sine' : 'triangle';
+          oscillator.frequency.setValueAtTime(frequency * partial, time);
+          oscillator.detune.setValueAtTime((audioRandom() - .5) * 5, time);
+          envelope.gain.setValueAtTime(.0001, time);
+          envelope.gain.exponentialRampToValueAtTime(strength / (1 + i * 2.8), time + .015 + i * .006);
+          envelope.gain.exponentialRampToValueAtTime(.0001, time + 1.5 + i * .31);
+          oscillator.connect(envelope);
+          envelope.connect(bus);
+          oscillator.start(time);
+          oscillator.stop(time + 2.2);
+        });
+      }
+
+      consecrate(density, kin) {
+        if (!this.context || this.muted) return;
+        const now = this.context.currentTime;
+        const ratio = [1, 5 / 4, 4 / 3, 3 / 2][kin];
+        this.bell(this.root * ratio * 4, now, .095);
+        this.bell(this.root * ratio * 6, now + .17, .052 + density * .08);
+        this.bell(this.root * ratio * 8, now + .43, .035);
+      }
+
+      wound(intensity) {
+        if (!this.context || this.muted) return;
+        const now = this.context.currentTime;
+        this.bell(this.root * 7 / 4, now, .024 + intensity * .025);
+      }
+
+      setMark(sounding) {
+        soundMark.dataset.sounding = String(sounding);
+        soundMark.setAttribute('aria-pressed', String(sounding));
+        soundMark.setAttribute('aria-label', sounding ? 'Silence the manuscript' : 'Begin the manuscript\'s sound');
+        soundMark.textContent = sounding ? '∴' : '·';
+      }
+
+      async toggle() {
+        if (!this.started) {
+          await this.begin();
+          return;
+        }
+        this.muted = !this.muted;
+        const target = this.muted ? .0001 : .17;
+        this.master.gain.setTargetAtTime(target, this.context.currentTime, this.muted ? .05 : .35);
+        this.setMark(!this.muted);
+      }
+    }
+
+    const soundMark = document.querySelector('#sound-mark');
+    const score = new ManuscriptChoir();
+    soundMark.addEventListener('click', event => {
+      event.stopPropagation();
+      score.toggle();
+    });
+
+    // ── THE IMAGE ────────────────────────────────────────────────────────────
+    // The background is made once from seeded noise; the archive accumulates;
+    // the living manuscript is redrawn. These are three different kinds of time.
+
+    let cssWidth = innerWidth;
+    let cssHeight = innerHeight;
+    let dpr = Math.min(2, devicePixelRatio || 1);
+
+    function resizeCanvas() {
+      cssWidth = innerWidth;
+      cssHeight = innerHeight;
+      dpr = Math.min(2, devicePixelRatio || 1);
+      canvas.width = Math.floor(cssWidth * dpr);
+      canvas.height = Math.floor(cssHeight * dpr);
+    }
+
+    function createVellum() {
+      const texture = document.createElement('canvas');
+      texture.width = 256;
+      texture.height = 256;
+      const textureCtx = texture.getContext('2d');
+      const image = textureCtx.createImageData(256, 256);
+      for (let y = 0; y < 256; y++) {
+        for (let x = 0; x < 256; x++) {
+          const i = (y * 256 + x) * 4;
+          const fiber = fbm(x / 22, y / 22);
+          const fleck = hash2(x, y, 1217);
+          const value = Math.floor(7 + fiber * 7 + (fleck > .992 ? 11 : 0));
+          image.data[i] = value;
+          image.data[i + 1] = value + 1;
+          image.data[i + 2] = value + 2;
+          image.data[i + 3] = 255;
+        }
+      }
+      textureCtx.putImageData(image, 0, 0);
+      return texture;
+    }
+
+    const vellum = createVellum();
+
+    function worldTransform(target) {
+      target.setTransform(
+        dpr * cssWidth / WORLD_W,
+        0,
+        0,
+        dpr * cssHeight / WORLD_H,
+        0,
+        0
+      );
+    }
+
+    function drawGround(seconds) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#090b0d';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const pattern = ctx.createPattern(vellum, 'repeat');
+      ctx.globalAlpha = .92;
+      ctx.fillStyle = pattern;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.globalAlpha = 1;
+      worldTransform(ctx);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const wash = ctx.createRadialGradient(
+        WORLD_W * (.43 + Math.sin(seconds * .004) * .06),
+        WORLD_H * .48,
+        0,
+        WORLD_W * .5,
+        WORLD_H * .5,
+        Math.max(WORLD_W, WORLD_H) * .72
+      );
+      wash.addColorStop(0, 'rgba(77,73,61,.095)');
+      wash.addColorStop(.45, 'rgba(30,42,39,.04)');
+      wash.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = wash;
+      ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+      ctx.restore();
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(231,221,194,.021)';
+      ctx.lineWidth = .7;
+      const ledger = STEP_Y * 4;
+      for (let y = ledger * 1.5; y < WORLD_H; y += ledger) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + Math.sin(y * .021) * 1.4);
+        ctx.lineTo(WORLD_W, y + Math.cos(y * .017) * 1.4);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = 'rgba(169,80,61,.035)';
+      ctx.beginPath();
+      ctx.moveTo(WORLD_W * .083, 0);
+      ctx.lineTo(WORLD_W * .083, WORLD_H);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawArchive(era) {
+      ctx.save();
+      ctx.globalAlpha = [.73, .81, .91, 1][era];
+      ctx.drawImage(archive, 0, 0);
+      ctx.restore();
+    }
+
+    function drawScars(seconds) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = 'rgba(0,0,0,.52)';
+      for (let index = 0; index < COUNT; index++) {
+        if (scar[index] < .06) continue;
+        const { x, y } = cellCenter(index);
+        const s = Math.min(STEP_X, STEP_Y) * (.25 + scar[index] * .32);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate((hash2(index, 0, 1301) - .5) * 1.2);
+        ctx.fillRect(-s, -s * .11, s * 2, s * .22);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (let index = 0; index < COUNT; index++) {
+        if (!repair[index] || life[index] < .03) continue;
+        const shimmer = reducedMotion ? 1 : .78 + Math.sin(seconds * 1.1 + index) * .22;
+        traceGlyph(ctx, index, life[index], `rgba(210,173,99,${.32 * shimmer})`, 5);
+      }
+      ctx.restore();
+    }
+
+    function drawConnections(seconds) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.lineCap = 'round';
+      for (let index = 0; index < COUNT; index++) {
+        if (life[index] < .05 || parent[index] < 1) continue;
+        const ancestor = neighborIndex(index, parent[index] - 1);
+        if (ancestor < 0 || life[ancestor] < .025) continue;
+        const from = cellCenter(index);
+        const to = cellCenter(ancestor);
+        const kin = repair[index] ? 4 : lineage[index];
+        const color = lineColors[kin] || lineColors[1];
+        const vitality = Math.min(life[index], life[ancestor]);
+        const attention = pointer.inside ? Math.max(0, 1 - Math.hypot(from.x - pointer.x, from.y - pointer.y) / 155) : 0;
+        const alpha = .075 + vitality * .3 + attention * .24;
+        const bend = (hash2(index, ancestor, 1367) - .5) * STEP_X * 1.15;
+        const mx = (from.x + to.x) * .5 + bend;
+        const my = (from.y + to.y) * .5 - bend * .28;
+        ctx.strokeStyle = `rgba(${color[0]},${color[1]},${color[2]},${alpha})`;
+        ctx.lineWidth = .45 + vitality * 1.35 + attention * .4;
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.quadraticCurveTo(mx, my, to.x, to.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawLiving(seconds, era) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (let index = 0; index < COUNT; index++) {
+        if (life[index] < .035) continue;
+        const point = cellCenter(index);
+        const distance = pointer.inside ? Math.hypot(point.x - pointer.x, point.y - pointer.y) : 9999;
+        const attention = Math.max(0, 1 - distance / 145);
+        const pulse = reducedMotion ? 1 : .91 + Math.sin(seconds * (.38 + era * .07) + index * .31) * .09;
+        const kin = repair[index] ? 4 : lineage[index];
+        const color = lineColors[kin] || lineColors[1];
+        const alpha = clamp(.10 + life[index] * .54 + attention * .28, 0, .86);
+        traceGlyph(ctx, index, life[index] * pulse + attention * .28, `rgba(${color[0]},${color[1]},${color[2]},${alpha})`, 0);
+      }
+      ctx.restore();
+    }
+
+    function drawSeals(now) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      for (let i = seals.length - 1; i >= 0; i--) {
+        const seal = seals[i];
+        const elapsed = (now - seal.born) / 1000;
+        if (elapsed > 9) {
+          seals.splice(i, 1);
+          continue;
+        }
+        const progress = elapsed / 9;
+        const ease = 1 - Math.pow(1 - progress, 3);
+        const radius = 9 + ease * 78;
+        const c = lineColors[seal.kin] || lineColors[4];
+        ctx.save();
+        ctx.translate(seal.x, seal.y);
+        if (!reducedMotion) ctx.rotate(progress * .24 * (seal.kin % 2 ? 1 : -1));
+        ctx.strokeStyle = `rgba(${c[0]},${c[1]},${c[2]},${(1 - progress) * .48})`;
+        ctx.lineWidth = .75;
+        const notch = radius * .28;
+        ctx.beginPath();
+        ctx.moveTo(-radius, -radius + notch); ctx.lineTo(-radius, -radius); ctx.lineTo(-radius + notch, -radius);
+        ctx.moveTo(radius - notch, -radius); ctx.lineTo(radius, -radius); ctx.lineTo(radius, -radius + notch);
+        ctx.moveTo(radius, radius - notch); ctx.lineTo(radius, radius); ctx.lineTo(radius - notch, radius);
+        ctx.moveTo(-radius + notch, radius); ctx.lineTo(-radius, radius); ctx.lineTo(-radius, radius - notch);
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    function drawAttention(seconds) {
+      if (!pointer.inside || pointer.down) return;
+      const speed = Math.hypot(pointer.x - pointer.px, pointer.y - pointer.py);
+      const radius = 17 + Math.min(24, speed * .55);
+      ctx.save();
+      ctx.translate(pointer.x, pointer.y);
+      ctx.rotate(reducedMotion ? 0 : seconds * .035);
+      ctx.strokeStyle = 'rgba(231,221,194,.13)';
+      ctx.lineWidth = .65;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, -.55, .55);
+      ctx.arc(0, 0, radius, Math.PI - .55, Math.PI + .55);
+      ctx.stroke();
+      ctx.restore();
+      pointer.px += (pointer.x - pointer.px) * .18;
+      pointer.py += (pointer.y - pointer.py) * .18;
+    }
+
+    function render(now) {
+      const seconds = (now - startTime) / 1000;
+      const era = phaseAt(seconds);
+      drawGround(seconds);
+      drawArchive(era);
+      drawScars(seconds);
+      drawConnections(seconds);
+      drawLiving(seconds, era);
+      drawSeals(now);
+      drawAttention(seconds);
+    }
+
+    // ── THE VISITOR'S HAND ───────────────────────────────────────────────────
+
+    function eventToWorld(event) {
+      return {
+        x: event.clientX / cssWidth * WORLD_W,
+        y: event.clientY / cssHeight * WORLD_H
+      };
+    }
+
+    canvas.addEventListener('pointerenter', event => {
+      const point = eventToWorld(event);
+      pointer.x = pointer.px = point.x;
+      pointer.y = pointer.py = point.y;
+      pointer.inside = true;
+    });
+
+    canvas.addEventListener('pointerleave', () => {
+      if (!pointer.down) pointer.inside = false;
+    });
+
+    canvas.addEventListener('pointerdown', event => {
+      const point = eventToWorld(event);
+      pointer.x = pointer.lastCutX = point.x;
+      pointer.y = pointer.lastCutY = point.y;
+      pointer.down = true;
+      pointer.inside = true;
+      pointer.moved = 0;
+      pointer.downAt = performance.now();
+      canvas.setPointerCapture(event.pointerId);
+      score.begin();
+    });
+
+    canvas.addEventListener('pointermove', event => {
+      const point = eventToWorld(event);
+      const distance = Math.hypot(point.x - pointer.x, point.y - pointer.y);
+      pointer.moved += distance;
+      pointer.x = point.x;
+      pointer.y = point.y;
+
+      if (pointer.down && pointer.moved > 11) {
+        const segment = Math.hypot(point.x - pointer.lastCutX, point.y - pointer.lastCutY);
+        const steps = Math.max(1, Math.ceil(segment / (STEP_X * .55)));
+        for (let i = 1; i <= steps; i++) {
+          const t = i / steps;
+          cutAt(
+            pointer.lastCutX + (point.x - pointer.lastCutX) * t,
+            pointer.lastCutY + (point.y - pointer.lastCutY) * t
+          );
+        }
+        pointer.lastCutX = point.x;
+        pointer.lastCutY = point.y;
+        if (tickNumber % 3 === 0) score.wound(Math.min(1, segment / 90));
+      }
+    });
+
+    function releasePointer(event) {
+      if (!pointer.down) return;
+      const point = eventToWorld(event);
+      const held = performance.now() - pointer.downAt;
+      pointer.down = false;
+      if (pointer.moved < 11 && held < 900) plantAt(point.x, point.y);
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    }
+
+    canvas.addEventListener('pointerup', releasePointer);
+    canvas.addEventListener('pointercancel', event => {
+      pointer.down = false;
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    });
+
+    window.addEventListener('resize', resizeCanvas, { passive: true });
+    window.addEventListener('keydown', event => {
+      if (event.key.toLowerCase() === 'm') score.toggle();
+    });
+
+    initializeEcology();
+    resizeCanvas();
+
+    let lastFrame = performance.now();
+    let accumulator = 0;
+    let lastLabelSecond = -1;
+    const fixedStep = 1 / 12;
+    // Rendering is intentionally capped while ecology and audio retain their own
+    // clocks. Calligraphy benefits from temporal grain, and a five-minute page
+    // must not spend the visitor's battery merely to redraw unchanged ink.
+    const frameInterval = reducedMotion ? 1000 / 16 : innerWidth < 700 ? 1000 / 24 : 1000 / 30;
+    let lastRendered = 0;
+
+    function frame(now) {
+      const elapsed = Math.min(.25, (now - lastFrame) / 1000);
+      lastFrame = now;
+      accumulator += elapsed;
+      const seconds = (now - startTime) / 1000;
+
+      let guard = 0;
+      while (accumulator >= fixedStep && guard++ < 4) {
+        ecologyTick(fixedStep, seconds);
+        accumulator -= fixedStep;
+      }
+
+      if (now - lastRendered >= frameInterval) {
+        render(now);
+        lastRendered = now;
+      }
+
+      const wholeSecond = Math.floor(seconds);
+      if (wholeSecond !== lastLabelSecond) {
+        lastLabelSecond = wholeSecond;
+        const minutes = String(Math.floor(wholeSecond / 60)).padStart(2, '0');
+        const remainder = String(wholeSecond % 60).padStart(2, '0');
+        ageLabel.textContent = `${phaseRoman(phaseAt(seconds))} · ${minutes}:${remainder}`;
+      }
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>
+<!--
+  I attempted a manuscript whose ecology, visual archive, and just-intonation choir make attention materially irreversible. It strained where a deliberately unstable long-duration system still had to remain playable on a phone. Next I would dare to let two offline performances exchange scars by carrying nothing but each other's seed and a hand-transcribed gesture score.
+-->
